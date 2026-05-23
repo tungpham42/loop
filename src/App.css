@@ -92,3 +92,108 @@ body {
     justify-content: center;
   }
 }
+
+/* =========================================
+   ✨ WOW Input Styling 
+   ========================================= */
+
+.hero-input-wrapper {
+  margin: 8px 0 24px 0;
+  position: relative;
+  border-radius: 100px;
+  /* Eye-candy gradient border */
+  background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+  padding: 5px; /* Thickness of the gradient border */
+  box-shadow: 0 12px 32px rgba(255, 107, 107, 0.25);
+  transition:
+    transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1),
+    box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Hover and Focus animations for an intuitive feel */
+.hero-input-wrapper:hover,
+.hero-input-wrapper:focus-within {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 20px 48px rgba(255, 107, 107, 0.4);
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+}
+
+/* Overriding Ant Design's default input styles */
+.wow-input.ant-input-affix-wrapper {
+  border-radius: 100px !important;
+  border: none !important;
+  padding: 16px 32px !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(10px);
+  box-shadow: none !important; /* Shadow is handled by the wrapper */
+}
+
+/* Massive, friendly typography inside the input */
+.wow-input input {
+  font-size: 1.35rem !important;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  color: #2d3436;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.wow-input input::placeholder {
+  color: #a4b0be;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+/* Big, colorful search icon */
+.wow-icon {
+  font-size: 1.8rem !important;
+  color: #ff6b6b !important;
+  transition: transform 0.3s ease;
+}
+
+.hero-input-wrapper:focus-within .wow-icon {
+  transform: scale(1.1) rotate(5deg);
+  color: #ff4757 !important;
+}
+
+/* Custom clear button styling */
+.wow-input .ant-input-clear-icon {
+  font-size: 1.2rem;
+  color: #ff6b6b;
+}
+
+/* =========================================
+   📱 Mobile Responsiveness for WOW Input
+   ========================================= */
+
+@media (max-width: 480px) {
+  .hero-input-wrapper {
+    /* Slightly thinner gradient border to save screen real estate */
+    padding: 3px;
+    margin: 4px 0 16px 0;
+  }
+
+  .wow-input.ant-input-affix-wrapper {
+    /* Reduce internal padding so text has room to breathe */
+    padding: 10px 16px !important;
+  }
+
+  .wow-input input {
+    /* Scale down the text size for smaller screens */
+    font-size: 1.05rem !important;
+    margin-left: 6px;
+    /* Ensure long placeholders truncate nicely with an ellipsis */
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  /* Scale down the search icon */
+  .wow-icon {
+    font-size: 1.4rem !important;
+  }
+
+  /* Scale down the clear (x) button */
+  .wow-input .ant-input-clear-icon {
+    font-size: 1rem;
+  }
+}

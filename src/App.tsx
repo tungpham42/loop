@@ -170,23 +170,36 @@ const App: React.FC = () => {
     }
   };
 
+  const loadVideo = (id: string) => {
+    window.history.pushState(
+      {},
+      document.title,
+      `${window.location.pathname}?v=${id}`,
+    );
+    setVideoId(id);
+    setLoopA(null);
+    setLoopB(null);
+    setDuration(0);
+    setCurrentSpeed(1);
+    setVideoTitle("");
+    setCurrentLoopTitle("");
+    loadSavedLoops(id);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInputUrl(val);
+    const id = extractVideoId(val);
+    if (id && id !== videoId) {
+      loadVideo(id);
+    }
+  };
+
   const handleSearch = () => {
     const id = extractVideoId(inputUrl);
     if (id) {
-      window.history.pushState(
-        {},
-        document.title,
-        `${window.location.pathname}?v=${id}`,
-      );
-      setVideoId(id);
-      setLoopA(null);
-      setLoopB(null);
-      setDuration(0);
-      setCurrentSpeed(1);
-      setVideoTitle("");
-      setCurrentLoopTitle("");
-      loadSavedLoops(id);
-    } else {
+      if (id !== videoId) loadVideo(id);
+    } else if (inputUrl.trim() !== "") {
       message.error("Hmm, that doesn't look like a valid YouTube URL!");
     }
   };
@@ -300,14 +313,13 @@ const App: React.FC = () => {
   };
 
   const saveCurrentLoop = () => {
-    // Only check for videoId, no longer block if loopA or loopB are null
     if (!videoId) return;
 
     const newLoop: SavedLoop = {
       id: Date.now().toString(),
       title: currentLoopTitle || videoTitle || "My Loop",
-      a: loopA ?? 0, // Fallback to 0 if not set
-      b: loopB ?? duration, // Fallback to the full duration if not set
+      a: loopA ?? 0,
+      b: loopB ?? duration,
       speed: currentSpeed,
     };
 
@@ -408,38 +420,18 @@ const App: React.FC = () => {
           </Text>
         </div>
 
-        <Card className="cozy-card" bodyStyle={{ padding: "12px" }}>
-          {/* Changed from Space.Compact to flex container to wrap nicely on mobile */}
-          <div
-            style={{
-              display: "flex",
-              gap: "8px",
-              flexWrap: "wrap",
-              width: "100%",
-            }}
-          >
-            <Input
-              autoFocus
-              size="large"
-              placeholder="Paste YouTube URL or ID here"
-              value={inputUrl}
-              onChange={(e) => setInputUrl(e.target.value)}
-              onPressEnter={handleSearch}
-              prefix={<SearchOutlined style={{ color: "#b2bec3" }} />}
-              allowClear
-              style={{ flex: "1 1 200px" }}
-            />
-            <Button
-              type="primary"
-              size="large"
-              onClick={handleSearch}
-              style={{ flex: "0 0 auto", width: "100%" }}
-              className="mobile-full-width"
-            >
-              Load Video
-            </Button>
-          </div>
-        </Card>
+        <div className="hero-input-wrapper">
+          <Input
+            className="wow-input"
+            autoFocus
+            placeholder="Paste a YouTube link or ID here..."
+            value={inputUrl}
+            onChange={handleInputChange}
+            onPressEnter={handleSearch}
+            prefix={<SearchOutlined className="wow-icon" />}
+            allowClear
+          />
+        </div>
 
         {videoId && (
           <>
@@ -463,7 +455,6 @@ const App: React.FC = () => {
             </div>
 
             <Card className="cozy-card card-body-mobile" title="Controls">
-              {/* Prominent Call-To-Action Row */}
               <div
                 style={{
                   display: "flex",
@@ -514,7 +505,6 @@ const App: React.FC = () => {
                 </Button>
               </div>
 
-              {/* Visual Timeline Slider */}
               <div style={{ marginBottom: "24px" }}>
                 <div
                   style={{
@@ -541,7 +531,6 @@ const App: React.FC = () => {
                   />
                 </div>
 
-                {/* Current Loop Saving Section - Converted to flex wrap */}
                 <div
                   className="loop-save-container"
                   style={{
@@ -595,7 +584,6 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* Secondary Controls Row (Skip, Speed, Clear) */}
               <Row
                 gutter={[8, 16]}
                 justify="center"
@@ -668,7 +656,6 @@ const App: React.FC = () => {
               </Row>
             </Card>
 
-            {/* Saved Loops Section */}
             {savedLoops.length > 0 && (
               <Card
                 className="cozy-card card-body-mobile"
@@ -735,7 +722,6 @@ const App: React.FC = () => {
               </Card>
             )}
 
-            {/* Keyboard Shortcuts Info Card - Hidden on Mobile */}
             <div className="hide-on-mobile">
               <Card
                 className="cozy-card"
