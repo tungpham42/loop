@@ -87,13 +87,24 @@ const App: React.FC = () => {
     if (vParam && vParam.length === 11) {
       currentVideoId = vParam;
     } else {
-      const pathId = window.location.pathname.replace("/", "");
-      if (pathId.length === 11) {
-        currentVideoId = pathId;
+      // FIX: Gracefully handle deeper paths like /shorts/12345678901
+      const pathSegments = window.location.pathname.split("/").filter(Boolean);
+      const possibleId = pathSegments[pathSegments.length - 1];
+      if (possibleId && possibleId.length === 11) {
+        currentVideoId = possibleId;
       }
     }
 
     if (currentVideoId) {
+      // FIX: Immediately sanitize the URL to root to prevent 404s if the user copies it later
+      if (window.location.pathname !== "/") {
+        window.history.replaceState(
+          {},
+          document.title,
+          `/?v=${currentVideoId}`,
+        );
+      }
+
       setVideoId(currentVideoId);
       setInputUrl(`https://www.youtube.com/watch?v=${currentVideoId}`);
       loadSavedLoops(currentVideoId);
@@ -171,11 +182,8 @@ const App: React.FC = () => {
   };
 
   const loadVideo = (id: string) => {
-    window.history.pushState(
-      {},
-      document.title,
-      `${window.location.pathname}?v=${id}`,
-    );
+    // FIX: Force routing to root instead of preserving `window.location.pathname`
+    window.history.pushState({}, document.title, `/?v=${id}`);
     setVideoId(id);
     setLoopA(null);
     setLoopB(null);
@@ -293,11 +301,8 @@ const App: React.FC = () => {
     setLoopA(null);
     setLoopB(null);
     setCurrentLoopTitle(videoTitle || "My Loop");
-    window.history.pushState(
-      {},
-      document.title,
-      `${window.location.pathname}?v=${videoId}`,
-    );
+    // FIX: Force routing to root instead of preserving `window.location.pathname`
+    window.history.pushState({}, document.title, `/?v=${videoId}`);
     message.info("Loop cleared. Ready for a new segment!");
   };
 
@@ -344,6 +349,12 @@ const App: React.FC = () => {
     message.info(`Loaded loop: ${loop.title} at ${loopSpeed}x`);
   };
 
+  const getLoopUrl = (loop: SavedLoop) => {
+    // FIX: Ensure the generated sharing URL uses the absolute root, bypassing bad paths
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/?v=${videoId}&a=${loop.a}&b=${loop.b}&s=${loop.speed || 1}`;
+  };
+
   const deleteLoop = (idToRemove: string) => {
     const updatedLoops = savedLoops.filter((loop) => loop.id !== idToRemove);
     setSavedLoops(updatedLoops);
@@ -351,11 +362,6 @@ const App: React.FC = () => {
       localStorage.setItem(`yt-loops-${videoId}`, JSON.stringify(updatedLoops));
     }
     message.success("Loop deleted");
-  };
-
-  const getLoopUrl = (loop: SavedLoop) => {
-    const baseUrl = window.location.origin + window.location.pathname;
-    return `${baseUrl}?v=${videoId}&a=${loop.a}&b=${loop.b}&s=${loop.speed || 1}`;
   };
 
   const copyLoop = (loop: SavedLoop) => {
