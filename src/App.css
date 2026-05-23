@@ -1,0 +1,94 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+
+/* Global Reset & Background */
+body {
+  margin: 0;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  background: linear-gradient(135deg, #fff9f2 0%, #ffebeb 100%);
+  min-height: 100vh;
+  color: #333;
+}
+
+.app-container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 48px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Typography Enhancements */
+.title-gradient {
+  background: linear-gradient(90deg, #ff6b6b, #ff8e53);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800 !important;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  letter-spacing: -1px;
+}
+
+/* Cozy Card Styling */
+.cozy-card {
+  border-radius: 24px !important;
+  box-shadow: 0 12px 36px rgba(255, 107, 107, 0.08) !important;
+  border: none !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(10px);
+}
+
+.cozy-card .ant-card-head {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+/* Friendly Video Frame */
+.video-responsive {
+  overflow: hidden;
+  padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+  position: relative;
+  height: 0;
+  border-radius: 24px;
+  background-color: #1a1a1a;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12);
+  border: 6px solid #ffffff;
+  transition: transform 0.3s ease;
+}
+
+.video-responsive:hover {
+  transform: translateY(-4px);
+}
+
+.video-responsive iframe {
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  border: none;
+}
+
+/* Input & Button Overrides for a bubblier feel */
+.ant-input-affix-wrapper {
+  padding-left: 16px !important;
+}
+
+.ant-btn {
+  font-weight: 600;
+}
+
+.controls-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Tablet and Desktop adjustments */
+@media (min-width: 768px) {
+  .controls-container {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
