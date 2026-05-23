@@ -22,8 +22,6 @@ import {
   StepBackwardOutlined,
   StepForwardOutlined,
   CloseCircleOutlined,
-  ThunderboltOutlined,
-  HourglassOutlined,
   RetweetOutlined,
   PlaySquareOutlined,
   PauseCircleOutlined,
@@ -55,29 +53,28 @@ const App: React.FC = () => {
   const [duration, setDuration] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
 
-  // Track the actual YouTube video title
   const [videoTitle, setVideoTitle] = useState<string>("");
-
-  // Loop states
   const [loopA, setLoopA] = useState<number | null>(null);
   const [loopB, setLoopB] = useState<number | null>(null);
   const [currentLoopTitle, setCurrentLoopTitle] = useState<string>("");
-
-  // State to track the current playback speed
   const [currentSpeed, setCurrentSpeed] = useState<number>(1);
-
-  // Saved loops state
   const [savedLoops, setSavedLoops] = useState<SavedLoop[]>([]);
 
-  // Extract video ID from URL
-  const extractVideoId = (url: string): string | null => {
+  const extractVideoId = (input: string): string | null => {
+    const cleanInput = input.trim();
+    if (
+      cleanInput.length === 11 &&
+      !cleanInput.includes("/") &&
+      !cleanInput.includes("?")
+    ) {
+      return cleanInput;
+    }
     const regExp =
-      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
+      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
+    const match = cleanInput.match(regExp);
     return match && match[2].length === 11 ? match[2] : null;
   };
 
-  // Handle URL replacement & Load Saved Loops & Load URL Loops
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const vParam = urlParams.get("v");
@@ -101,7 +98,6 @@ const App: React.FC = () => {
       setInputUrl(`https://www.youtube.com/watch?v=${currentVideoId}`);
       loadSavedLoops(currentVideoId);
 
-      // Pre-load loop boundaries and speed if they exist in the URL
       if (aParam !== null && bParam !== null) {
         setLoopA(Number(aParam));
         setLoopB(Number(bParam));
@@ -112,10 +108,8 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Handle AB Looping Logic
   useEffect(() => {
     let loopInterval: NodeJS.Timeout;
-
     if (player && loopA !== null && loopB !== null) {
       loopInterval = setInterval(async () => {
         const currentTime = await player.getCurrentTime();
@@ -124,21 +118,16 @@ const App: React.FC = () => {
         }
       }, 100);
     }
-
     return () => {
       if (loopInterval) clearInterval(loopInterval);
     };
   }, [player, loopA, loopB]);
 
-  // --- Keyboard Shortcuts ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Allow normal typing inside input fields
       if (["INPUT", "TEXTAREA"].includes((e.target as HTMLElement).tagName)) {
         return;
       }
-
-      // Check for Cmd (Mac) or Ctrl (Windows/Linux)
       if (e.ctrlKey || e.metaKey) {
         const key = e.key.toLowerCase();
         switch (key) {
@@ -156,11 +145,11 @@ const App: React.FC = () => {
             break;
           case "u":
             e.preventDefault();
-            changeSpeedStep(1); // Speed up
+            changeSpeedStep(1);
             break;
           case "j":
             e.preventDefault();
-            changeSpeedStep(-1); // Speed down
+            changeSpeedStep(-1);
             break;
           default:
             break;
@@ -184,13 +173,11 @@ const App: React.FC = () => {
   const handleSearch = () => {
     const id = extractVideoId(inputUrl);
     if (id) {
-      // Update URL to reflect the new video ID, clearing only the loop parameters (a, b, s)
       window.history.pushState(
         {},
         document.title,
         `${window.location.pathname}?v=${id}`,
       );
-
       setVideoId(id);
       setLoopA(null);
       setLoopB(null);
@@ -209,7 +196,6 @@ const App: React.FC = () => {
     event.target.unMute();
     event.target.setVolume(50);
 
-    // Fetch the actual YouTube video title from the player data
     const fetchedTitle = event.target.getVideoData()?.title || "My Loop";
     setVideoTitle(fetchedTitle);
 
@@ -217,7 +203,6 @@ const App: React.FC = () => {
       setCurrentLoopTitle(fetchedTitle);
     }
 
-    // Snap to loaded loop A and Speed immediately on ready if parsed from URL
     const urlParams = new URLSearchParams(window.location.search);
     const aParam = urlParams.get("a");
     const sParam = urlParams.get("s");
@@ -234,12 +219,9 @@ const App: React.FC = () => {
     if (!duration && event.target.getDuration() > 0) {
       setDuration(event.target.getDuration());
     }
-    // Update play/pause state (1 = playing, 2 = paused)
     if (event.data === 1) setIsPlaying(true);
     if (event.data === 2) setIsPlaying(false);
   };
-
-  // --- Core Controls ---
 
   const handleSliderChange = (values: number[]) => {
     setLoopA(values[0]);
@@ -298,7 +280,6 @@ const App: React.FC = () => {
     setLoopA(null);
     setLoopB(null);
     setCurrentLoopTitle(videoTitle || "My Loop");
-    // Clear URL parameters dynamically
     window.history.pushState(
       {},
       document.title,
@@ -318,17 +299,15 @@ const App: React.FC = () => {
     return `${m}:${s}`;
   };
 
-  // --- Saved Loops Logic ---
-
   const saveCurrentLoop = () => {
-    if (!videoId || loopA === null || loopB === null) return;
+    // Only check for videoId, no longer block if loopA or loopB are null
+    if (!videoId) return;
 
-    // Save speed configuration with loop
     const newLoop: SavedLoop = {
       id: Date.now().toString(),
       title: currentLoopTitle || videoTitle || "My Loop",
-      a: loopA,
-      b: loopB,
+      a: loopA ?? 0, // Fallback to 0 if not set
+      b: loopB ?? duration, // Fallback to the full duration if not set
       speed: currentSpeed,
     };
 
@@ -339,14 +318,14 @@ const App: React.FC = () => {
   };
 
   const applySavedLoop = (loop: SavedLoop) => {
-    const loopSpeed = loop.speed || 1; // Fallback to 1 for older saves
+    const loopSpeed = loop.speed || 1;
     setLoopA(loop.a);
     setLoopB(loop.b);
     setCurrentLoopTitle(loop.title);
-    setCurrentSpeed(loopSpeed); // Update dropdown state
+    setCurrentSpeed(loopSpeed);
 
     if (player) {
-      player.setPlaybackRate(loopSpeed); // Apply speed to player
+      player.setPlaybackRate(loopSpeed);
       player.seekTo(loop.a, true);
       player.playVideo();
     }
@@ -362,7 +341,6 @@ const App: React.FC = () => {
     message.success("Loop deleted");
   };
 
-  // Generate specific loop link including speed
   const getLoopUrl = (loop: SavedLoop) => {
     const baseUrl = window.location.origin + window.location.pathname;
     return `${baseUrl}?v=${videoId}&a=${loop.a}&b=${loop.b}&s=${loop.speed || 1}`;
@@ -371,9 +349,7 @@ const App: React.FC = () => {
   const copyLoop = (loop: SavedLoop) => {
     const url = getLoopUrl(loop);
     navigator.clipboard.writeText(url);
-    message.success(
-      "Link copied! Anyone with this link can load your exact loop and speed.",
-    );
+    message.success("Link copied!");
   };
 
   const shareLoop = async (loop: SavedLoop) => {
@@ -405,59 +381,64 @@ const App: React.FC = () => {
         },
         components: {
           Slider: {
-            handleSize: 24, // Much larger drag handles
-            handleSizeHover: 28, // Even larger on hover
+            handleSize: 24,
+            handleSizeHover: 28,
             trackBg: "#FF6B6B",
             trackHoverBg: "#FF8E53",
-            railSize: 8, // Thicker background track
+            railSize: 8,
           },
         },
       }}
     >
       <div className="app-container">
-        <div style={{ textAlign: "center", marginBottom: "10px" }}>
+        <div style={{ textAlign: "center", marginBottom: "4px" }}>
           <Title level={1} className="title-gradient" style={{ margin: 0 }}>
             <PlayCircleFilled
               style={{
                 color: "#FF6B6B",
-                marginRight: "12px",
-                fontSize: "36px",
+                marginRight: "8px",
+                fontSize: "1em",
                 verticalAlign: "middle",
               }}
             />
             SOFT Loop
           </Title>
-          <Text style={{ fontSize: "16px", color: "#636e72", fontWeight: 500 }}>
-            Master any skill by looping exactly the parts you need.
+          <Text className="subtitle-text">
+            Repetition made effortless. Mastery made inevitable.
           </Text>
         </div>
 
-        <Card className="cozy-card" bodyStyle={{ padding: "8px" }}>
-          <Space.Compact style={{ width: "100%" }}>
+        <Card className="cozy-card" bodyStyle={{ padding: "12px" }}>
+          {/* Changed from Space.Compact to flex container to wrap nicely on mobile */}
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              flexWrap: "wrap",
+              width: "100%",
+            }}
+          >
             <Input
               autoFocus
               size="large"
-              placeholder="Paste a YouTube URL to get started..."
+              placeholder="Paste YouTube URL or ID here"
               value={inputUrl}
               onChange={(e) => setInputUrl(e.target.value)}
               onPressEnter={handleSearch}
-              prefix={
-                <SearchOutlined
-                  style={{ color: "#b2bec3", fontSize: "18px" }}
-                />
-              }
+              prefix={<SearchOutlined style={{ color: "#b2bec3" }} />}
               allowClear
-              style={{ fontSize: "16px", padding: "12px 16px" }}
+              style={{ flex: "1 1 200px" }}
             />
             <Button
               type="primary"
               size="large"
               onClick={handleSearch}
-              style={{ padding: "0 32px", fontSize: "16px", height: "auto" }}
+              style={{ flex: "0 0 auto", width: "100%" }}
+              className="mobile-full-width"
             >
               Load Video
             </Button>
-          </Space.Compact>
+          </div>
         </Card>
 
         {videoId && (
@@ -481,15 +462,15 @@ const App: React.FC = () => {
               />
             </div>
 
-            <Card className="cozy-card" title="Playback & Loop Controls">
-              {/* --- Prominent Call-To-Action Row at the Top --- */}
+            <Card className="cozy-card card-body-mobile" title="Controls">
+              {/* Prominent Call-To-Action Row */}
               <div
                 style={{
                   display: "flex",
                   flexWrap: "wrap",
                   justifyContent: "center",
-                  gap: "16px",
-                  marginBottom: "32px",
+                  gap: "8px",
+                  marginBottom: "24px",
                 }}
               >
                 <Button
@@ -497,12 +478,7 @@ const App: React.FC = () => {
                   shape="round"
                   icon={<PlaySquareOutlined />}
                   onClick={startVideo}
-                  style={{
-                    height: "50px",
-                    padding: "0 32px",
-                    fontSize: "16px",
-                    fontWeight: "bold",
-                  }}
+                  style={{ fontWeight: "bold" }}
                 >
                   Start
                 </Button>
@@ -510,17 +486,13 @@ const App: React.FC = () => {
                   type="primary"
                   size="large"
                   shape="round"
-                  title="Cmd/Ctrl + P"
                   icon={
                     isPlaying ? <PauseCircleOutlined /> : <PlayCircleOutlined />
                   }
                   onClick={togglePlay}
                   style={{
-                    height: "50px",
-                    padding: "0 32px",
-                    fontSize: "16px",
                     fontWeight: "bold",
-                    boxShadow: "0 6px 16px rgba(255, 107, 107, 0.4)",
+                    boxShadow: "0 4px 12px rgba(255, 107, 107, 0.4)",
                   }}
                 >
                   {isPlaying ? "Pause" : "Play"}
@@ -529,17 +501,13 @@ const App: React.FC = () => {
                   type="primary"
                   size="large"
                   shape="round"
-                  title="Cmd/Ctrl + L"
                   icon={<RetweetOutlined />}
                   onClick={startManualLoop}
                   style={{
-                    height: "50px",
-                    padding: "0 40px",
-                    fontSize: "18px",
                     fontWeight: "bold",
-                    backgroundColor: "#ff4757", // Deeper red for ultra prominence
+                    backgroundColor: "#ff4757",
                     borderColor: "#ff4757",
-                    boxShadow: "0 6px 16px rgba(255, 71, 87, 0.4)",
+                    boxShadow: "0 4px 12px rgba(255, 71, 87, 0.4)",
                   }}
                 >
                   Loop
@@ -547,23 +515,18 @@ const App: React.FC = () => {
               </div>
 
               {/* Visual Timeline Slider */}
-              <div style={{ marginBottom: "32px", padding: "0 16px" }}>
+              <div style={{ marginBottom: "24px" }}>
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
+                    flexWrap: "wrap",
                   }}
                 >
-                  <Text strong style={{ fontSize: "16px" }}>
-                    Visual A/B Loop Slider
-                  </Text>
-                  <Text type="secondary" style={{ fontSize: "14px" }}>
-                    Drag to set your loop boundaries
-                  </Text>
+                  <Text strong>Visual A/B Loop Slider</Text>
                 </div>
 
-                {/* The Slider itself, now much thicker and easier to grab */}
-                <div style={{ padding: "2px 0" }}>
+                <div style={{ padding: "8px 0" }}>
                   <Slider
                     range
                     min={0}
@@ -578,99 +541,76 @@ const App: React.FC = () => {
                   />
                 </div>
 
-                {/* Current Loop Saving Section */}
-                <Row
-                  justify="space-between"
-                  align="middle"
+                {/* Current Loop Saving Section - Converted to flex wrap */}
+                <div
+                  className="loop-save-container"
                   style={{
-                    marginTop: "24px",
+                    marginTop: "16px",
                     background: "#f9f9f9",
                     padding: "16px",
                     borderRadius: "12px",
                     border: "1px dashed #d9d9d9",
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "12px",
+                    justifyContent: "center",
                   }}
                 >
-                  <Col>
-                    <Space size="small" direction="vertical">
-                      <Space>
-                        <Tag
-                          color="volcano"
-                          style={{
-                            padding: "6px 16px",
-                            fontSize: "15px",
-                            borderRadius: "8px",
-                          }}
-                        >
-                          A: {formatTime(loopA || 0)}
-                        </Tag>
-                        <Text type="secondary">to</Text>
-                        <Tag
-                          color="orange"
-                          style={{
-                            padding: "6px 16px",
-                            fontSize: "15px",
-                            borderRadius: "8px",
-                            margin: 0,
-                          }}
-                        >
-                          B: {formatTime(loopB || duration)}
-                        </Tag>
-                        <Tag
-                          color="blue"
-                          style={{
-                            padding: "6px 16px",
-                            fontSize: "15px",
-                            borderRadius: "8px",
-                            margin: 0,
-                          }}
-                        >
-                          {currentSpeed}x
-                        </Tag>
-                      </Space>
-                    </Space>
-                  </Col>
-                  <Col>
-                    <Space.Compact>
-                      <Input
-                        size="large"
-                        value={currentLoopTitle}
-                        onChange={(e) => setCurrentLoopTitle(e.target.value)}
-                        placeholder="Loop Name"
-                        disabled={loopA === null || loopB === null}
-                        style={{ width: 160 }}
-                      />
-                      <Button
-                        size="large"
-                        type="primary"
-                        icon={<SaveOutlined />}
-                        onClick={saveCurrentLoop}
-                        disabled={loopA === null || loopB === null}
-                      >
-                        Save
-                      </Button>
-                    </Space.Compact>
-                  </Col>
-                </Row>
+                  <Space wrap size="small" style={{ justifyContent: "center" }}>
+                    <Tag color="volcano" className="mobile-tag">
+                      A: {formatTime(loopA || 0)}
+                    </Tag>
+                    <Text type="secondary" style={{ fontSize: "12px" }}>
+                      to
+                    </Text>
+                    <Tag color="orange" className="mobile-tag">
+                      B: {formatTime(loopB || duration)}
+                    </Tag>
+                    <Tag color="blue" className="mobile-tag">
+                      {currentSpeed}x
+                    </Tag>
+                  </Space>
+
+                  <Space.Compact
+                    style={{
+                      flexGrow: 1,
+                      minWidth: "100%",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Input
+                      value={currentLoopTitle}
+                      onChange={(e) => setCurrentLoopTitle(e.target.value)}
+                      placeholder="Loop Name"
+                      style={{ maxWidth: "200px" }}
+                    />
+                    <Button
+                      type="primary"
+                      icon={<SaveOutlined />}
+                      onClick={saveCurrentLoop}
+                    >
+                      Save
+                    </Button>
+                  </Space.Compact>
+                </div>
               </div>
 
               {/* Secondary Controls Row (Skip, Speed, Clear) */}
               <Row
-                gutter={[16, 24]}
+                gutter={[8, 16]}
                 justify="center"
                 align="middle"
                 style={{
                   background: "#fdfdfd",
-                  padding: "16px",
+                  padding: "16px 8px",
                   borderRadius: "16px",
                   border: "1px solid #f0f0f0",
                 }}
               >
-                {/* Skip Block */}
                 <Col xs={24} sm={8} style={{ textAlign: "center" }}>
                   <Space>
                     <Button
                       shape="round"
-                      title="Cmd/Ctrl + B"
                       icon={<StepBackwardOutlined />}
                       onClick={() => skipTime(-5)}
                     >
@@ -686,51 +626,30 @@ const App: React.FC = () => {
                   </Space>
                 </Col>
 
-                {/* Speed Block */}
                 <Col xs={24} sm={8} style={{ textAlign: "center" }}>
                   <Space>
-                    <Tooltip title="Shortcut: Cmd/Ctrl + U (Up) / J (Down)">
-                      <Text strong style={{ cursor: "help" }}>
-                        Speed:
-                      </Text>
-                    </Tooltip>
+                    <Text strong>Speed:</Text>
                     <Select
-                      value={currentSpeed} // Tied directly to state
-                      style={{ width: 110 }}
+                      value={currentSpeed}
+                      style={{ width: 100 }}
                       onChange={handleSpeedChange}
                       options={[
-                        {
-                          value: 0.25,
-                          label: (
-                            <span>
-                              0.25x <HourglassOutlined />
-                            </span>
-                          ),
-                        },
+                        { value: 0.25, label: "0.25x" },
                         { value: 0.5, label: "0.5x" },
                         { value: 0.75, label: "0.75x" },
                         { value: 1, label: "Normal" },
                         { value: 1.25, label: "1.25x" },
                         { value: 1.5, label: "1.5x" },
-                        {
-                          value: 2,
-                          label: (
-                            <span>
-                              2.0x <ThunderboltOutlined />
-                            </span>
-                          ),
-                        },
+                        { value: 2, label: "2.0x" },
                       ]}
                     />
                   </Space>
                 </Col>
 
-                {/* Clear Block */}
                 <Col xs={24} sm={8} style={{ textAlign: "center" }}>
                   <Button
                     type="text"
                     danger
-                    size="large"
                     shape="round"
                     icon={<CloseCircleOutlined />}
                     onClick={clearLoop}
@@ -743,7 +662,7 @@ const App: React.FC = () => {
                           : "transparent",
                     }}
                   >
-                    Clear Loop
+                    Clear
                   </Button>
                 </Col>
               </Row>
@@ -752,9 +671,9 @@ const App: React.FC = () => {
             {/* Saved Loops Section */}
             {savedLoops.length > 0 && (
               <Card
-                className="cozy-card"
+                className="cozy-card card-body-mobile"
                 title="My Saved Loops"
-                style={{ marginTop: "24px" }}
+                style={{ marginTop: "16px" }}
               >
                 <List
                   itemLayout="horizontal"
@@ -762,43 +681,53 @@ const App: React.FC = () => {
                   renderItem={(loop) => (
                     <List.Item
                       actions={[
-                        <Button
-                          type="text"
-                          icon={<CopyOutlined />}
-                          onClick={() => copyLoop(loop)}
-                          title="Copy Link"
-                        />,
-                        <Button
-                          type="text"
-                          icon={<ShareAltOutlined />}
-                          onClick={() => shareLoop(loop)}
-                          title="Share"
-                        />,
-                        <Button
-                          type="text"
-                          icon={<PlayCircleOutlined />}
-                          onClick={() => applySavedLoop(loop)}
-                        >
-                          Load
-                        </Button>,
+                        <Tooltip title="Copy Link" key="copy">
+                          <Button
+                            type="text"
+                            icon={<CopyOutlined />}
+                            onClick={() => copyLoop(loop)}
+                          />
+                        </Tooltip>,
+                        <Tooltip title="Share" key="share">
+                          <Button
+                            type="text"
+                            icon={<ShareAltOutlined />}
+                            onClick={() => shareLoop(loop)}
+                          />
+                        </Tooltip>,
+                        <Tooltip title="Load" key="load">
+                          <Button
+                            type="primary"
+                            icon={<PlayCircleOutlined />}
+                            onClick={() => applySavedLoop(loop)}
+                          />
+                        </Tooltip>,
                         <Popconfirm
-                          title="Delete this loop?"
+                          title="Delete?"
                           onConfirm={() => deleteLoop(loop.id)}
                           okText="Yes"
                           cancelText="No"
+                          key="delete"
                         >
                           <Button
                             type="text"
                             danger
                             icon={<DeleteOutlined />}
-                            title="Delete"
                           />
                         </Popconfirm>,
                       ]}
                     >
                       <List.Item.Meta
-                        title={<Text strong>{loop.title}</Text>}
-                        description={`From ${formatTime(loop.a)} to ${formatTime(loop.b)} at ${loop.speed || 1}x`}
+                        title={
+                          <Text strong style={{ fontSize: "14px" }}>
+                            {loop.title}
+                          </Text>
+                        }
+                        description={
+                          <span
+                            style={{ fontSize: "12px" }}
+                          >{`${formatTime(loop.a)} - ${formatTime(loop.b)} (${loop.speed || 1}x)`}</span>
+                        }
                       />
                     </List.Item>
                   )}
@@ -806,48 +735,50 @@ const App: React.FC = () => {
               </Card>
             )}
 
-            {/* Keyboard Shortcuts Info Card */}
-            <Card
-              className="cozy-card"
-              style={{
-                marginTop: "24px",
-                backgroundColor: "rgba(255, 255, 255, 0.6)",
-              }}
-              bodyStyle={{ padding: "16px 24px" }}
-            >
-              <div style={{ marginBottom: "12px" }}>
-                <Text strong style={{ fontSize: "16px" }}>
-                  ⌨️ Quick Keyboard Shortcuts
-                </Text>
-              </div>
-              <Row gutter={[16, 16]}>
-                <Col xs={12} sm={8} md={5}>
-                  <Text type="secondary">Play / Pause</Text>
-                  <br />
-                  <Tag style={{ marginTop: "4px" }}>Cmd/Ctrl + P</Tag>
-                </Col>
-                <Col xs={12} sm={8} md={5}>
-                  <Text type="secondary">Retrigger Loop</Text>
-                  <br />
-                  <Tag style={{ marginTop: "4px" }}>Cmd/Ctrl + L</Tag>
-                </Col>
-                <Col xs={12} sm={8} md={5}>
-                  <Text type="secondary">Skip Back 5s</Text>
-                  <br />
-                  <Tag style={{ marginTop: "4px" }}>Cmd/Ctrl + B</Tag>
-                </Col>
-                <Col xs={12} sm={8} md={4}>
-                  <Text type="secondary">Speed Up</Text>
-                  <br />
-                  <Tag style={{ marginTop: "4px" }}>Cmd/Ctrl + U</Tag>
-                </Col>
-                <Col xs={12} sm={8} md={4}>
-                  <Text type="secondary">Speed Down</Text>
-                  <br />
-                  <Tag style={{ marginTop: "4px" }}>Cmd/Ctrl + J</Tag>
-                </Col>
-              </Row>
-            </Card>
+            {/* Keyboard Shortcuts Info Card - Hidden on Mobile */}
+            <div className="hide-on-mobile">
+              <Card
+                className="cozy-card"
+                style={{
+                  marginTop: "16px",
+                  backgroundColor: "rgba(255, 255, 255, 0.6)",
+                }}
+                bodyStyle={{ padding: "16px 24px" }}
+              >
+                <div style={{ marginBottom: "12px" }}>
+                  <Text strong style={{ fontSize: "16px" }}>
+                    ⌨️ Quick Keyboard Shortcuts
+                  </Text>
+                </div>
+                <Row gutter={[16, 16]}>
+                  <Col xs={12} sm={8} md={5}>
+                    <Text type="secondary">Play / Pause</Text>
+                    <br />
+                    <Tag style={{ marginTop: "4px" }}>Cmd/Ctrl + P</Tag>
+                  </Col>
+                  <Col xs={12} sm={8} md={5}>
+                    <Text type="secondary">Retrigger Loop</Text>
+                    <br />
+                    <Tag style={{ marginTop: "4px" }}>Cmd/Ctrl + L</Tag>
+                  </Col>
+                  <Col xs={12} sm={8} md={5}>
+                    <Text type="secondary">Skip Back 5s</Text>
+                    <br />
+                    <Tag style={{ marginTop: "4px" }}>Cmd/Ctrl + B</Tag>
+                  </Col>
+                  <Col xs={12} sm={8} md={4}>
+                    <Text type="secondary">Speed Up</Text>
+                    <br />
+                    <Tag style={{ marginTop: "4px" }}>Cmd/Ctrl + U</Tag>
+                  </Col>
+                  <Col xs={12} sm={8} md={4}>
+                    <Text type="secondary">Speed Down</Text>
+                    <br />
+                    <Tag style={{ marginTop: "4px" }}>Cmd/Ctrl + J</Tag>
+                  </Col>
+                </Row>
+              </Card>
+            </div>
           </>
         )}
       </div>
